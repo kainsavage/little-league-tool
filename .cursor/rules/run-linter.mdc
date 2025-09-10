@@ -1,32 +1,20 @@
 ---
-description: Always run the formatter
+description: Always run the linter
 globs:
 alwaysApply: true
 ---
-## Auto-Formatting Rule
+## Auto-Linting/Checking Rule
 
-### Code Formatting Automation
-- **Automatic Formatting**: Always run `npm run format` at the end of any coding task
-- **Pre-commit**: Ensure all code changes are properly formatted before completing tasks
-- **Consistency**: Maintain consistent code style across the entire codebase
+### Code Linting/Checking Automation
+- **Automatic Linting**: Always run `npm run lint` at the end of any coding task
+- **Check for Svelte Issues**: Always run `npm run check` after successful linting
 
 ### Implementation
-- After making any code changes, automatically execute `npm run format`
-- This runs Prettier with the project's configuration to format all files
-- The format script uses: `prettier --write .`
-- Respects `.prettierignore` file for excluded paths
+- After making any code changes, automatically execute `npm run lint`
+- After a successful run of `npm run lint` automatically execute `npm run check`
 
 ### When to Apply
 - After creating new files
 - After modifying existing code
 - After completing any development task
 - Before suggesting the task is complete
-
-### Benefits
-- Ensures consistent code style
-- Reduces code review friction
-- Maintains project formatting standards
-- Improves code readability
-
-### Note
-This rule works in conjunction with the existing Prettier configuration in `.prettierrc` and respects the ignore patterns in `.prettierignore`.

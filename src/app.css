@@ -4,65 +4,65 @@
 
 /* Baseball Theme Color Palette */
 :root {
-  /* Primary Colors - Baseball Diamond Green */
-  --color-primary: #2d5a27;        /* Deep forest green - like grass */
-  --color-primary-light: #4a7c59;  /* Lighter green for hover states */
-  --color-primary-dark: #1e3d1a;   /* Darker green for active states */
-  
-  /* Secondary Colors - Baseball Brown */
-  --color-secondary: #8b4513;      /* Saddle brown - like leather */
-  --color-secondary-light: #a0522d; /* Lighter brown */
-  --color-secondary-dark: #654321;  /* Darker brown */
-  
-  /* Accent Colors - Baseball White & Cream */
-  --color-accent: #f0f0e6;         /* Beige - like baseball */
-  --color-accent-light: #f8f8f0;   /* Very light cream */
-  --color-accent-dark: #e0e0c8;    /* Slightly darker cream */
-  
-  /* Neutral Colors - Baseball Dirt & Sky */
-  --color-dirt: #8b7355;           /* Baseball dirt brown */
-  --color-dirt-light: #a68b5b;     /* Lighter dirt */
-  --color-dirt-dark: #6b5b47;      /* Darker dirt */
-  
-  /* Text Colors */
-  --color-text: #1a1a1a;           /* Very dark gray for main text */
-  --color-text-light: #2d2d2d;     /* Dark gray for secondary text */
-  --color-text-muted: #5a5a5a;     /* Darker gray for muted text - better contrast */
-  
-  /* Background Colors */
-  --color-bg-primary: #ffffff;     /* Pure white */
-  --color-bg-secondary: #f8f8f8;   /* Very light gray */
-  --color-bg-accent: #f0f4f0;      /* Very light green tint */
-  
-  /* Status Colors */
-  --color-success: #2d5a27;        /* Same as primary green */
-  --color-warning: #d4a574;        /* Golden brown */
-  --color-error: #8b4513;          /* Same as secondary brown */
-  --color-info: #4a7c59;           /* Primary light green */
-  
-  /* Border Colors */
-  --color-border: #c4c4c4;         /* Light gray */
-  --color-border-light: #e0e0e0;   /* Very light gray */
-  --color-border-dark: #8a8a8a;    /* Medium gray */
+	/* Primary Colors - Baseball Diamond Green */
+	--color-primary: #2d5a27; /* Deep forest green - like grass */
+	--color-primary-light: #4a7c59; /* Lighter green for hover states */
+	--color-primary-dark: #1e3d1a; /* Darker green for active states */
+
+	/* Secondary Colors - Baseball Brown */
+	--color-secondary: #8b4513; /* Saddle brown - like leather */
+	--color-secondary-light: #a0522d; /* Lighter brown */
+	--color-secondary-dark: #654321; /* Darker brown */
+
+	/* Accent Colors - Baseball White & Cream */
+	--color-accent: #f0f0e6; /* Beige - like baseball */
+	--color-accent-light: #f8f8f0; /* Very light cream */
+	--color-accent-dark: #e0e0c8; /* Slightly darker cream */
+
+	/* Neutral Colors - Baseball Dirt & Sky */
+	--color-dirt: #8b7355; /* Baseball dirt brown */
+	--color-dirt-light: #a68b5b; /* Lighter dirt */
+	--color-dirt-dark: #6b5b47; /* Darker dirt */
+
+	/* Text Colors */
+	--color-text: #1a1a1a; /* Very dark gray for main text */
+	--color-text-light: #2d2d2d; /* Dark gray for secondary text */
+	--color-text-muted: #5a5a5a; /* Darker gray for muted text - better contrast */
+
+	/* Background Colors */
+	--color-bg-primary: #ffffff; /* Pure white */
+	--color-bg-secondary: #f8f8f8; /* Very light gray */
+	--color-bg-accent: #f0f4f0; /* Very light green tint */
+
+	/* Status Colors */
+	--color-success: #2d5a27; /* Same as primary green */
+	--color-warning: #d4a574; /* Golden brown */
+	--color-error: #8b4513; /* Same as secondary brown */
+	--color-info: #4a7c59; /* Primary light green */
+
+	/* Border Colors */
+	--color-border: #c4c4c4; /* Light gray */
+	--color-border-light: #e0e0e0; /* Very light gray */
+	--color-border-dark: #8a8a8a; /* Medium gray */
 }
 
 /* Global body styling */
 body {
-  background-color: var(--color-bg-primary);
-  color: var(--color-text);
+	background-color: var(--color-bg-primary);
+	color: var(--color-text);
 }
 
 /* Dark mode support (optional) */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --color-text: #e5e5e5;
-    --color-text-light: #cccccc;
-    --color-text-muted: #999999;
-    --color-bg-primary: #1a1a1a;
-    --color-bg-secondary: #2a2a2a;
-    --color-bg-accent: #1e2a1e;
-    --color-border: #404040;
-    --color-border-light: #333333;
-    --color-border-dark: #555555;
-  }
+	:root {
+		--color-text: #e5e5e5;
+		--color-text-light: #cccccc;
+		--color-text-muted: #999999;
+		--color-bg-primary: #1a1a1a;
+		--color-bg-secondary: #2a2a2a;
+		--color-bg-accent: #1e2a1e;
+		--color-border: #404040;
+		--color-border-light: #333333;
+		--color-border-dark: #555555;
+	}
 }

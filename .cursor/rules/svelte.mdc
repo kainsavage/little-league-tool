@@ -1,0 +1,446 @@
+
+# Svelte 5 Runes Development Rules
+
+This project uses **Svelte 5 with Runes**. Always use the new Runes syntax and avoid legacy Svelte 4 reactivity patterns.
+
+## Component State Management
+
+### ✅ DO: Use $state() for reactive variables
+```typescript
+let count = $state(0);
+let user = $state({ name: '', email: '' });
+let items = $state<Item[]>([]);
+```
+
+### ❌ DON'T: Use plain let for reactive state
+```typescript
+// DON'T - Legacy Svelte 4 pattern
+let count = 0;
+let user = { name: '', email: '' };
+```
+
+## Component Props
+
+### ✅ DO: Use $props() for component props
+```typescript
+interface Props {
+  title: string;
+  count?: number;
+  onClick?: () => void;
+}
+
+let { title, count = 0, onClick }: Props = $props();
+```
+
+### ❌ DON'T: Use export let for props
+```typescript
+// DON'T - Legacy Svelte 4 pattern
+export let title: string;
+export let count = 0;
+export let onClick: () => void;
+```
+
+## Derived Values
+
+### ✅ DO: Use $derived() for computed values
+```typescript
+let firstName = $state('');
+let lastName = $state('');
+let fullName = $derived(`${firstName} ${lastName}`);
+let isValid = $derived(firstName.length > 0 && lastName.length > 0);
+```
+
+### ❌ DON'T: Use $: reactive statements for computed values
+```typescript
+// DON'T - Legacy Svelte 4 pattern
+$: fullName = `${firstName} ${lastName}`;
+$: isValid = firstName.length > 0 && lastName.length > 0;
+```
+
+## Side Effects
+
+### ✅ DO: Use $effect() for side effects
+```typescript
+let count = $state(0);
+
+$effect(() => {
+  console.log(`Count changed to: ${count}`);
+});
+
+// Effect with cleanup
+$effect(() => {
+  const interval = setInterval(() => {
+    count++;
+  }, 1000);
+  
+  return () => clearInterval(interval);
+});
+```
+
+### ❌ DON'T: Use $: reactive statements for side effects
+```typescript
+// DON'T - Legacy Svelte 4 pattern
+$: console.log(`Count changed to: ${count}`);
+$: {
+  // Side effect logic
+}
+```
+
+## Two-way Binding
+
+### ✅ DO: Use $bindable() for parent-child binding
+```typescript
+// Child component
+interface Props {
+  value: string;
+}
+
+let { value = $bindable() }: Props = $props();
+```
+
+```svelte
+<!-- Parent component -->
+<ChildComponent bind:value={inputValue} />
+```
+
+### ✅ DO: Use bind: for form elements
+```svelte
+<input bind:value={name} />
+<textarea bind:value={description}></textarea>
+<input type="checkbox" bind:checked={isActive} />
+```
+
+## Event Handling
+
+### ✅ DO: Use modern event handling syntax
+```svelte
+<button onclick={() => count++}>
+  Increment: {count}
+</button>
+
+<button onclick={handleClick}>
+  Submit
+</button>
+```
+
+### ✅ DO: Use proper TypeScript for event handlers
+```typescript
+function handleSubmit(event: SubmitEvent) {
+  event.preventDefault();
+  // Handle form submission
+}
+
+function handleInput(event: Event & { currentTarget: EventTarget & HTMLInputElement }) {
+  const value = event.currentTarget.value;
+  // Handle input
+}
+```
+
+## Lifecycle and Effects
+
+### ✅ DO: Use $effect() for lifecycle-like behavior
+```typescript
+import { onMount } from 'svelte';
+
+// For cleanup on unmount
+$effect(() => {
+  return () => {
+    // Cleanup logic
+  };
+});
+
+// For mount-like behavior, prefer $effect() over onMount when possible
+onMount(() => {
+  // Mount logic when $effect() isn't suitable
+});
+```
+
+## Store Integration
+
+### ✅ DO: Use stores with Runes when needed
+```typescript
+import { writable } from 'svelte/store';
+
+const store = writable(0);
+let storeValue = $state(0);
+
+$effect(() => {
+  const unsubscribe = store.subscribe(value => {
+    storeValue = value;
+  });
+  return unsubscribe;
+});
+```
+
+## TypeScript Best Practices
+
+### ✅ DO: Always type your component props
+```typescript
+interface ComponentProps {
+  required: string;
+  optional?: number;
+  callback?: (value: string) => void;
+}
+
+let { required, optional = 10, callback }: ComponentProps = $props();
+```
+
+### ✅ DO: Type your state variables
+```typescript
+let users = $state<User[]>([]);
+let loading = $state<boolean>(false);
+let error = $state<string | null>(null);
+```
+
+## SvelteKit Integration
+
+### ✅ DO: Use proper SvelteKit patterns with Runes
+```typescript
+// In +page.svelte
+import type { PageData } from './$types';
+
+interface Props {
+  data: PageData;
+}
+
+let { data }: Props = $props();
+let localState = $state(data.initialValue);
+```
+
+### ✅ DO: Handle reactive updates from page data
+```typescript
+let { data }: { data: PageData } = $props();
+let processedData = $derived(processData(data));
+
+$effect(() => {
+  // React to data changes
+  console.log('Data updated:', data);
+});
+```
+
+## Performance Considerations
+
+### ✅ DO: Use $derived() for expensive computations sparingly
+```typescript
+// Good - simple derivation
+let total = $derived(items.reduce((sum, item) => sum + item.price, 0));
+
+// Be careful with complex derivations
+let expensiveComputation = $derived(() => {
+  if (shouldCompute) {
+    return heavyCalculation(largeDataSet);
+  }
+  return null;
+});
+```
+
+### ✅ DO: Use fine-grained reactivity
+```typescript
+// Good - separate concerns
+let userInfo = $state({ name: '', email: '', preferences: {} });
+let displayName = $derived(userInfo.name || 'Anonymous');
+let isValidEmail = $derived(userInfo.email.includes('@'));
+```
+
+## Component Organization
+
+### ✅ DO: Organize component script section logically
+```typescript
+<script lang="ts">
+  // 1. Imports
+  import ComponentChild from './ComponentChild.svelte';
+  
+  // 2. Type definitions
+  interface Props {
+    // ...
+  }
+  
+  // 3. Props
+  let { propA, propB }: Props = $props();
+  
+  // 4. State
+  let localState = $state(0);
+  
+  // 5. Derived values
+  let computed = $derived(localState * 2);
+  
+  // 6. Effects
+  $effect(() => {
+    // Side effects
+  });
+  
+  // 7. Functions
+  function handleAction() {
+    // Event handlers
+  }
+</script>
+```
+
+## Migration Notes
+
+When updating legacy Svelte 4 code:
+1. Replace `export let` with `$props()`
+2. Replace reactive `let` variables with `$state()`
+3. Replace `$:` computations with `$derived()`
+4. Replace `$:` side effects with `$effect()`
+5. Update component prop destructuring patterns
+6. Add proper TypeScript types throughout
+
+## Common Patterns to Avoid
+
+❌ **Never mix Runes with legacy patterns in the same component**
+❌ **Don't use `$:` reactive statements** - use `$derived()` or `$effect()` instead
+❌ **Don't use `export let`** - use `$props()` instead
+❌ **Don't use plain `let` for reactive state** - use `$state()` instead
+❌ **Don't forget to type your props and state** - always use TypeScript
+
+## SvelteKit Best Practices
+
+### ✅ DO: Use server-side load functions
+```typescript
+// In +page.server.ts
+export const load = async ({ params }) => {
+  const data = await fetchData(params.id);
+  return { data };
+};
+
+// In +page.svelte
+let { data }: Props = $props();
+```
+
+### ❌ DON'T: Fetch data in onMount
+```typescript
+// DON'T - Avoid client-side data fetching when possible
+onMount(async () => {
+  const response = await fetch('/api/data');
+  data = await response.json();
+});
+```
+
+## Accessibility and UX Guidelines
+
+### ✅ DO: Key each blocks for performance and correctness
+```svelte
+{#each items as item (item.id)}
+  <div>{item.name}</div>
+{/each}
+```
+
+### ❌ DON'T: Leave each blocks unkeyed
+```svelte
+<!-- DON'T - Missing key can cause issues with state preservation -->
+{#each items as item}
+  <div>{item.name}</div>
+{/each}
+```
+
+### ✅ DO: Use proper label elements with for attributes
+```svelte
+<label for="username">Username</label>
+<input id="username" type="text" bind:value={username} />
+```
+
+### ❌ DON'T: Use unlabeled or improperly labeled inputs
+```svelte
+<!-- DON'T - Missing or improper labels reduce accessibility -->
+<div>Username</div>
+<input type="text" bind:value={username} />
+```
+
+### ✅ DO: Use anchor tags for navigation
+```svelte
+<a href="/dashboard">Go to Dashboard</a>
+```
+
+### ❌ DON'T: Use buttons for navigation
+```svelte
+<!-- DON'T - Buttons lack proper semantics for navigation -->
+<button onclick={() => goto('/dashboard')}>
+  Go to Dashboard
+</button>
+```
+
+### ✅ DO: Use server-side load functions
+```typescript
+// In +page.server.ts
+export const load = async ({ params }) => {
+  const data = await fetchData(params.id);
+  return { data };
+};
+
+// In +page.svelte
+let { data }: Props = $props();
+```
+
+### ❌ DON'T: Fetch data in onMount
+```typescript
+// DON'T - Avoid client-side data fetching when possible
+onMount(async () => {
+  const response = await fetch('/api/data');
+  data = await response.json();
+});
+```
+
+### ✅ DO: Use locals.user for authentication checks
+```typescript
+// In +page.server.ts or +server.ts
+export const load = async ({ locals }) => {
+  if (!locals.user) {
+    throw redirect(302, '/auth/login');
+  }
+  return { user: locals.user };
+};
+```
+### ❌ DON'T: Check cookies directly for authentication
+```typescript
+export const load = async ({ cookies }) => {
+  const sessionId = cookies.get('sessionId');
+  if (!sessionId) {
+    throw redirect(302, '/auth/login');
+  }
+  // ...
+};
+```
+
+## Accessibility and UX Guidelines
+
+### ✅ DO: Key each blocks for performance and correctness
+```svelte
+{#each items as item (item.id)}
+  <div>{item.name}</div>
+{/each}
+```
+
+### ❌ DON'T: Leave each blocks unkeyed
+```svelte
+<!-- DON'T - Missing key can cause issues with state preservation -->
+{#each items as item}
+  <div>{item.name}</div>
+{/each}
+```
+
+### ✅ DO: Use proper label elements with for attributes
+```svelte
+<label for="username">Username</label>
+<input id="username" type="text" bind:value={username} />
+```
+
+### ❌ DON'T: Use unlabeled or improperly labeled inputs
+```svelte
+<!-- DON'T - Missing or improper labels reduce accessibility -->
+<div>Username</div>
+<input type="text" bind:value={username} />
+```
+
+### ✅ DO: Use anchor tags for navigation
+```svelte
+<a href="/dashboard">Go to Dashboard</a>
+```
+
+### ❌ DON'T: Use buttons for navigation
+```svelte
+<!-- DON'T - Buttons lack proper semantics for navigation -->
+<button onclick={() => goto('/dashboard')}>
+  Go to Dashboard
+</button>
+```

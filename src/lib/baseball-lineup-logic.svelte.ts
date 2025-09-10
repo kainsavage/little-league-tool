@@ -6,6 +6,9 @@
  * and league rule validation. Uses Svelte 5 runes for reactive state management.
  */
 
+import { replaceState } from '$app/navigation';
+import { resolve } from '$app/paths';
+
 // Types for better type safety
 export interface PlayerStats {
 	positionCounts: Record<string, number>;
@@ -43,13 +46,6 @@ export const battingOrder = $state<string[]>([]);
 export const generatedLineups = $state<Record<string, string[]>>({});
 export const playerCapabilities = $state<Record<string, string[]>>({});
 
-// Storage keys
-const STORAGE_KEYS = {
-	ROSTER: 'baseball-roster',
-	CAPABILITIES: 'baseball-capabilities',
-	LINEUPS: 'baseball-lineups'
-} as const;
-
 // Utility functions
 export function getInfieldPositions(): string[] {
 	return ['Pitcher', 'Catcher', '1st Base', '2nd Base', '3rd Base', 'Shortstop'];
@@ -63,7 +59,8 @@ export function isInfieldPosition(position: string): boolean {
 export function addPlayer(playerName: string): boolean {
 	if (playerName.trim() && !roster.includes(playerName.trim())) {
 		roster.push(playerName.trim());
-		saveRosterToStorage();
+		// Update URL with new state
+		updateUrlFromState();
 		return true;
 	}
 	return false;
@@ -76,8 +73,8 @@ export function removePlayer(player: string): void {
 		// Also remove from batting order and capabilities
 		removeFromBattingOrder(player);
 		delete playerCapabilities[player];
-		saveRosterToStorage();
-		saveCapabilitiesToStorage();
+		// Update URL with new state
+		updateUrlFromState();
 	}
 }
 
@@ -99,8 +96,8 @@ export function updatePlayerName(oldName: string, newName: string): boolean {
 				delete playerCapabilities[oldName];
 			}
 
-			saveRosterToStorage();
-			saveCapabilitiesToStorage();
+			// Update URL with new state
+			updateUrlFromState();
 			return true;
 		}
 	}
@@ -119,6 +116,9 @@ export function randomizeBattingOrder(): void {
 	// Create a shuffled copy of the roster
 	const shuffled = [...roster].sort(() => Math.random() - 0.5);
 	battingOrder.splice(0, battingOrder.length, ...shuffled);
+	// Update URL with new state
+	updateUrlFromState();
+	console.log('Batting order randomized:', $state.snapshot(battingOrder));
 }
 
 // Player Capabilities Management
@@ -138,7 +138,8 @@ export function togglePlayerCapability(player: string, position: string): void {
 		currentCapabilities.push(position);
 	}
 
-	saveCapabilitiesToStorage();
+	// Update URL with new state
+	updateUrlFromState();
 }
 
 export function canPlayerPlayPosition(player: string, position: string): boolean {
@@ -508,7 +509,8 @@ export function generateDefensiveLineups(): void {
 		if (validation.isValid) {
 			// Perfect lineup found
 			Object.assign(generatedLineups, lineups);
-			saveLineupsToStorage();
+			// Update URL with new state
+			updateUrlFromState();
 			return;
 		} else {
 			// Calculate score for this lineup (fewer errors = better score)
@@ -523,88 +525,180 @@ export function generateDefensiveLineups(): void {
 	// If no perfect lineup found, use the best one we found
 	if (Object.keys(bestLineups).length > 0) {
 		Object.assign(generatedLineups, bestLineups);
-		saveLineupsToStorage();
+		// Update URL with new state
+		updateUrlFromState();
 	} else {
 		// Fallback to original simple generation if all attempts failed
 		generateSimpleLineups();
-		saveLineupsToStorage();
+		// Update URL with new state
+		updateUrlFromState();
 	}
 }
 
 export function clearGeneratedLineups(): void {
 	Object.keys(generatedLineups).forEach((key) => delete generatedLineups[key]);
-	saveLineupsToStorage();
+	// Update URL with new state
+	updateUrlFromState();
 }
 
-// Storage Functions
-export function saveRosterToStorage(): void {
-	if (typeof window !== 'undefined') {
-		localStorage.setItem(STORAGE_KEYS.ROSTER, JSON.stringify(roster));
-	}
+// URL-based state management
+export async function exportStateToUrl(): Promise<string> {
+	const state = {
+		roster: [...roster],
+		playerCapabilities: { ...playerCapabilities },
+		generatedLineups: { ...generatedLineups },
+		battingOrder: [...battingOrder]
+	};
+
+	// Import the serialization functions dynamically to avoid circular dependencies
+	const { encodeState } = await import('./state-serialization');
+	const { validateWithSchema } = await import('./state-serialization');
+	const { BaseballLineupStateSchema } = await import('./baseball-schema');
+
+	// Validate and encode
+	const validatedState = validateWithSchema(state, BaseballLineupStateSchema);
+	return await encodeState(validatedState);
 }
 
-export function saveCapabilitiesToStorage(): void {
-	if (typeof window !== 'undefined') {
-		localStorage.setItem(STORAGE_KEYS.CAPABILITIES, JSON.stringify(playerCapabilities));
-	}
-}
+export async function importStateFromUrl(
+	hash: string
+): Promise<{ success: boolean; tab?: string }> {
+	try {
+		// Import the serialization functions dynamically
+		const { decodeState } = await import('./state-serialization');
+		const { validateWithSchema } = await import('./state-serialization');
+		const { BaseballLineupStateSchema } = await import('./baseball-schema');
 
-export function saveLineupsToStorage(): void {
-	if (typeof window !== 'undefined') {
-		localStorage.setItem(STORAGE_KEYS.LINEUPS, JSON.stringify(generatedLineups));
-	}
-}
-
-export function loadRosterFromStorage(): void {
-	if (typeof window !== 'undefined') {
-		const stored = localStorage.getItem(STORAGE_KEYS.ROSTER);
-		if (stored) {
-			try {
-				const parsedRoster = JSON.parse(stored);
-				roster.splice(0, roster.length, ...parsedRoster);
-			} catch (e) {
-				console.error('Error loading roster from storage:', e);
+		// Extract tab parameter if present
+		let tab: string | undefined;
+		if (hash.includes('&tab=')) {
+			const tabMatch = hash.match(/&tab=([^~]+)/);
+			if (tabMatch) {
+				tab = tabMatch[1];
 			}
 		}
+
+		// Clean the hash to remove tab parameter if present
+		// Handle both formats: #v1=data&tab=batting~checksum and #v1=data~checksum
+		let cleanHash = hash;
+		if (hash.includes('&tab=')) {
+			// Remove tab parameter: #v1=data&tab=batting~checksum -> #v1=data~checksum
+			cleanHash = hash.replace(/&tab=[^~]+/, '');
+		}
+
+		console.log('Original hash:', hash);
+		console.log('Clean hash for decoding:', cleanHash);
+		console.log('Extracted tab:', tab);
+
+		// Decode and validate
+		const decodedData = await decodeState(cleanHash);
+		const validatedState = validateWithSchema(decodedData, BaseballLineupStateSchema);
+
+		// Update state
+		roster.splice(0, roster.length, ...validatedState.roster);
+		Object.assign(playerCapabilities, validatedState.playerCapabilities);
+		Object.assign(generatedLineups, validatedState.generatedLineups);
+		battingOrder.splice(0, battingOrder.length, ...(validatedState.battingOrder || []));
+
+		console.log('State loaded from URL - Batting order:', $state.snapshot(battingOrder));
+
+		// Note: No longer saving to localStorage - state is managed via URL
+
+		return { success: true, tab };
+	} catch (error) {
+		console.error('Failed to import state from URL:', error);
+		return { success: false };
 	}
 }
 
-export function loadCapabilitiesFromStorage(): void {
-	if (typeof window !== 'undefined') {
-		const stored = localStorage.getItem(STORAGE_KEYS.CAPABILITIES);
-		if (stored) {
-			try {
-				const parsedCapabilities = JSON.parse(stored);
-				Object.assign(playerCapabilities, parsedCapabilities);
-			} catch (e) {
-				console.error('Error loading capabilities from storage:', e);
-			}
-		}
-	}
+export async function estimateUrlSize(): Promise<number> {
+	const state = {
+		roster: [...roster],
+		playerCapabilities: { ...playerCapabilities },
+		generatedLineups: { ...generatedLineups },
+		battingOrder: [...battingOrder]
+	};
+
+	const { estimateSize } = await import('./state-serialization');
+	return await estimateSize(state);
 }
 
-export function loadLineupsFromStorage(): void {
-	if (typeof window !== 'undefined') {
-		const stored = localStorage.getItem(STORAGE_KEYS.LINEUPS);
-		if (stored) {
-			try {
-				const parsedLineups = JSON.parse(stored);
-				Object.assign(generatedLineups, parsedLineups);
-			} catch (e) {
-				console.error('Error loading lineups from storage:', e);
+// Auto-update URL when state changes
+async function updateUrlFromState(): Promise<void> {
+	if (typeof window === 'undefined') return;
+
+	try {
+		const urlFragment = await exportStateToUrl();
+
+		// Check if current URL has a tab parameter and preserve it
+		const currentHash = window.location.hash;
+		let finalUrl = urlFragment;
+
+		if (currentHash.includes('&tab=')) {
+			// Extract the last tab parameter (in case there are multiple)
+			const tabMatches = currentHash.match(/&tab=([^~]+)/g);
+			if (tabMatches && tabMatches.length > 0) {
+				// Get the last tab parameter
+				const lastTabMatch = tabMatches[tabMatches.length - 1];
+				const tab = lastTabMatch.replace('&tab=', '');
+				const statePart = urlFragment.split('~')[0];
+				const checksumPart = urlFragment.split('~')[1];
+				finalUrl = `${statePart}&tab=${tab}~${checksumPart}`;
 			}
 		}
+
+		// Update URL using browser history API (SvelteKit compatible)
+		if (typeof window !== 'undefined') {
+			replaceState(resolve(('#' + finalUrl) as '/'), {});
+		}
+	} catch (error) {
+		console.error('Failed to update URL from state:', error);
 	}
 }
 
 // Initialization function
-export function initializeBaseballLineup(): void {
-	loadRosterFromStorage();
-	loadCapabilitiesFromStorage();
-	loadLineupsFromStorage();
+export async function initializeBaseballLineup(): Promise<void> {
+	// Check for URL state first (priority over localStorage)
+	if (typeof window !== 'undefined') {
+		const hash = window.location.hash;
+		if (hash && hash.includes('#v1=')) {
+			// Try to load state from URL first
+			try {
+				const result = await importStateFromUrl(hash);
+				if (result.success) {
+					console.log('Loaded state from URL');
+					// Set the tab if it was specified in the URL
+					if (result.tab && typeof window !== 'undefined') {
+						// Dispatch a custom event to notify the page component about the tab
+						window.dispatchEvent(
+							new CustomEvent('urlStateLoaded', { detail: { tab: result.tab } })
+						);
+					} else {
+						// No tab specified, dispatch event to clear loading state
+						window.dispatchEvent(new CustomEvent('urlStateLoaded', { detail: { tab: null } }));
+					}
+					// Don't randomize batting order when loading from URL - it's already set
+				} else {
+					console.warn('Failed to load state from URL');
+					// Dispatch event to clear loading state and set default tab
+					if (typeof window !== 'undefined') {
+						window.dispatchEvent(new CustomEvent('urlStateLoaded', { detail: { tab: null } }));
+					}
+					// No fallback - just initialize with empty state
+				}
+			} catch (error) {
+				console.error('Error loading state from URL:', error);
+				// Dispatch event to clear loading state and set default tab
+				if (typeof window !== 'undefined') {
+					window.dispatchEvent(new CustomEvent('urlStateLoaded', { detail: { tab: null } }));
+				}
+			}
+			return; // Exit early if we're loading from URL
+		}
+	}
 
-	// Initialize batting order when roster is loaded
-	if (roster.length > 0) {
+	// Initialize batting order if we have players but no batting order
+	if (roster.length > 0 && battingOrder.length === 0) {
 		randomizeBattingOrder();
 	}
 }
