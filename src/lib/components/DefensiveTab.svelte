@@ -12,12 +12,10 @@
 	// Props
 	let {
 		roster = [],
-		generatedLineups = {},
-		playerCapabilities = {}
+		generatedLineups = {}
 	}: {
 		roster?: string[];
 		generatedLineups?: Record<string, string[]>;
-		playerCapabilities?: Record<string, string[]>;
 	} = $props();
 
 	// Local state

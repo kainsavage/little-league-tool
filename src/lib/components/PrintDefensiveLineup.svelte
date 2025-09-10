@@ -16,7 +16,7 @@
 					<tr class="border-b border-black">
 						<th class="p-2 text-left">Position</th>
 						{#each Array(6) as _, inning (inning)}
-							<th class="p-2 text-center">Inning {inning + 1}</th>
+							<th class="p-2 text-center {_}">Inning {inning + 1}</th>
 						{/each}
 					</tr>
 				</thead>

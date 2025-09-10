@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
 	// Props
 	let {
@@ -28,10 +29,16 @@
 				const cleanStatePart = statePart.replace(/&tab=[^~]+/g, '');
 
 				const newHash = `${cleanStatePart}&tab=${tab}~${checksumPart}`;
-				await goto(`${window.location.pathname}${newHash}`, { replaceState: true, noScroll: true });
+				await goto(resolve(`${window.location.pathname}${newHash}` as '/'), {
+					replaceState: true,
+					noScroll: true
+				});
 			} else {
 				// No state data, just set the tab
-				await goto(`${window.location.pathname}#${tab}`, { replaceState: true, noScroll: true });
+				await goto(resolve(`${window.location.pathname}#${tab}` as '/'), {
+					replaceState: true,
+					noScroll: true
+				});
 			}
 		}
 		// Update the active tab immediately since hashchange event might not fire

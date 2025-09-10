@@ -85,90 +85,31 @@ async function compressData(data: Uint8Array): Promise<Uint8Array> {
 		return data; // Skip compression for small payloads
 	}
 
-	if (hasNativeCompression) {
-		// Use native compression streams
-		const stream = new CompressionStream('deflate-raw');
-		const writer = stream.writable.getWriter();
-		const reader = stream.readable.getReader();
-
-		// Write data to stream
-		writer.write(data.buffer as ArrayBuffer);
-		writer.close();
-
-		// Read compressed data
-		const chunks: Uint8Array[] = [];
-		let done = false;
-
-		while (!done) {
-			const { value, done: readerDone } = await reader.read();
-			done = readerDone;
-			if (value) {
-				chunks.push(value);
-			}
-		}
-
-		// Combine chunks
-		const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-		const result = new Uint8Array(totalLength);
-		let offset = 0;
-		for (const chunk of chunks) {
-			result.set(chunk, offset);
-			offset += chunk.length;
-		}
-
-		return result;
-	} else {
-		// Use pako fallback
-		return deflate(data);
-	}
+	// Temporarily disable native compression due to hanging issues
+	// Use pako for all compression until we can fix the native streams
+	return deflate(data);
 }
 
 /**
  * Decompress data using native DecompressionStream or pako fallback
  */
 async function decompressData(data: Uint8Array): Promise<Uint8Array> {
-	// Check if data is small enough that it might not have been compressed
-	if (data.length < COMPRESSION_THRESHOLD) {
-		console.log('Data is small, might not be compressed, returning as-is');
+	// Check if data looks like it's compressed by examining the header
+	// Zlib/deflate data typically starts with specific byte patterns
+	const isLikelyCompressed =
+		data.length >= 2 &&
+		((data[0] === 0x78 && (data[1] === 0x9c || data[1] === 0x01 || data[1] === 0xda)) || // zlib header
+			(data[0] === 0x1f && data[1] === 0x8b)); // gzip header
+
+	if (!isLikelyCompressed) {
+		console.log('Data does not appear to be compressed, returning as-is');
 		return data;
 	}
 
-	if (hasNativeCompression) {
-		// Use native decompression streams
-		const stream = new DecompressionStream('deflate-raw');
-		const writer = stream.writable.getWriter();
-		const reader = stream.readable.getReader();
-
-		// Write data to stream
-		writer.write(data.buffer as ArrayBuffer);
-		writer.close();
-
-		// Read decompressed data
-		const chunks: Uint8Array[] = [];
-		let done = false;
-
-		while (!done) {
-			const { value, done: readerDone } = await reader.read();
-			done = readerDone;
-			if (value) {
-				chunks.push(value);
-			}
-		}
-
-		// Combine chunks
-		const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-		const result = new Uint8Array(totalLength);
-		let offset = 0;
-		for (const chunk of chunks) {
-			result.set(chunk, offset);
-			offset += chunk.length;
-		}
-
-		return result;
-	} else {
-		// Use pako fallback
-		return inflate(data);
-	}
+	// Temporarily disable native compression due to hanging issues
+	// Use pako for all decompression until we can fix the native streams
+	console.log('Data appears to be compressed, using pako for decompression');
+	return inflate(data);
 }
 
 /**
@@ -289,7 +230,9 @@ export async function decodeState<T>(hash: string): Promise<T> {
 		// Decompress
 		let serialized: Uint8Array;
 		try {
+			console.log('Attempting decompression, compressed length:', compressed.length);
 			serialized = await decompressData(compressed);
+			console.log('Decompression successful, decompressed length:', serialized.length);
 		} catch (error) {
 			// If decompression fails, try treating the data as uncompressed
 			console.log('Decompression failed, trying as uncompressed data:', error);
@@ -297,6 +240,13 @@ export async function decodeState<T>(hash: string): Promise<T> {
 		}
 
 		// Deserialize with CBOR
+		console.log('Attempting CBOR decode, serialized length:', serialized.length);
+		console.log(
+			'Serialized data (first 50 bytes):',
+			Array.from(serialized.slice(0, 50))
+				.map((b) => b.toString(16).padStart(2, '0'))
+				.join(' ')
+		);
 		const decoded = cborDecode(serialized) as { v: number; data: T };
 
 		// Validate structure

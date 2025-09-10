@@ -4,7 +4,6 @@
 		roster,
 		battingOrder,
 		generatedLineups,
-		playerCapabilities,
 
 		// Initialization
 		initializeBaseballLineup
@@ -126,7 +125,7 @@
 				<div
 					class="h-12 w-12 animate-spin rounded-full border-b-2 border-[var(--color-primary)]"
 				></div>
-				<p class="text-[var(--color-text-muted)]">Loading state from URL...</p>
+				<p class="text-[var(--color-text-muted)]">Loading state...</p>
 			</div>
 		</div>
 	{:else}
@@ -147,7 +146,7 @@
 		{/if}
 
 		{#if activeTab === 'defensive'}
-			<DefensiveTab {roster} {generatedLineups} {playerCapabilities} />
+			<DefensiveTab {roster} {generatedLineups} />
 		{/if}
 	{/if}
 
