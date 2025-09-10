@@ -7,13 +7,15 @@ const config = {
 	// Consult https://svelte.dev/docs/kit/integrations
 	// for more information about preprocessors
 	preprocess: [vitePreprocess(), mdsvex()],
-	kit: { adapter: adapter({
-		pages: 'build',
-		assets: 'build',
-		fallback: '404.html', // This creates a 404.html file for fallback
-		precompress: false,
-		strict: false
-	}) },
+	kit: {
+		adapter: adapter({
+			pages: 'build',
+			assets: 'build',
+			fallback: '404.html', // This creates a 404.html file for fallback
+			precompress: false,
+			strict: false
+		})
+	},
 	paths: {
 		base: ''
 	},
