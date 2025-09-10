@@ -1,0 +1,34 @@
+name: Test AWS Credentials
+
+on:
+  workflow_dispatch: # Manual trigger only for security
+
+jobs:
+  test-aws:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET }}
+          aws-region: us-west-1
+
+      - name: Test AWS connection
+        run: |
+          echo "Testing AWS credentials..."
+          aws sts get-caller-identity
+
+      - name: Test S3 access
+        run: |
+          echo "Testing S3 bucket access..."
+          aws s3 ls s3://little-league-roster-app
+
+      - name: Test CloudFront access
+        run: |
+          echo "Testing CloudFront distribution access..."
+          aws cloudfront get-distribution --id E2ZW4I7NRCPH17 --query 'Distribution.{Id:Id,Status:Status,DomainName:DomainName}'
