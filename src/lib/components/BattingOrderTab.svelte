@@ -5,7 +5,8 @@
 		isPlayerAttending,
 		getSortedBattingOrderForDisplay,
 		gameMetadata,
-		updateGameMetadata
+		updateGameMetadata,
+		swapPlayersInBattingOrder
 	} from '$lib/baseball-lineup-logic.svelte';
 
 	// Props
@@ -13,6 +14,10 @@
 
 	// Get the sorted batting order for display (attending players first, then non-attending)
 	const displayOrder = $derived(getSortedBattingOrderForDisplay());
+
+	// Player switching state
+	let selectedPlayer = $state<string | null>(null);
+	let isSwitchingMode = $state(false);
 
 	// Helper function to format time for input (HH:MM format)
 	function formatTimeForInput(time: string): string {
@@ -22,6 +27,36 @@
 		// If time is in HH:MM:SS format, remove seconds
 		if (time.match(/^\d{2}:\d{2}:\d{2}$/)) return time.substring(0, 5);
 		return time;
+	}
+
+	// Player switching functions
+	function handlePlayerClick(player: string) {
+		if (!isSwitchingMode) {
+			// First click - enter switching mode
+			selectedPlayer = player;
+			isSwitchingMode = true;
+		} else {
+			// Second click - perform swap or cancel
+			if (selectedPlayer && selectedPlayer !== player) {
+				// Different player - perform swap
+				swapPlayersInBattingOrder(selectedPlayer, player);
+				// Reset switching mode
+				selectedPlayer = null;
+				isSwitchingMode = false;
+			} else if (selectedPlayer === player) {
+				// Same player clicked - cancel switching mode
+				selectedPlayer = null;
+				isSwitchingMode = false;
+			} else {
+				// Start new selection
+				selectedPlayer = player;
+			}
+		}
+	}
+
+	function cancelSwitching() {
+		selectedPlayer = null;
+		isSwitchingMode = false;
 	}
 </script>
 
@@ -139,14 +174,52 @@
 		{#if battingOrder.length === 0}
 			<p class="text-[var(--color-text-muted)] italic">No players in batting order yet</p>
 		{:else}
+			<!-- Switching Mode Indicator -->
+			{#if isSwitchingMode && selectedPlayer}
+				<div
+					class="mb-4 rounded-lg border border-[var(--color-primary)] bg-[var(--color-accent-light)] p-3"
+				>
+					<div class="flex items-center justify-between">
+						<div class="flex items-center gap-2">
+							<div class="h-3 w-3 animate-pulse rounded-full bg-[var(--color-primary)]"></div>
+							<span class="text-sm font-medium text-[var(--color-primary)]">
+								Switching Mode: Click on another player to swap with {selectedPlayer}
+							</span>
+						</div>
+						<button
+							class="text-sm text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)]"
+							onclick={cancelSwitching}
+						>
+							Cancel
+						</button>
+					</div>
+				</div>
+			{/if}
+
+			<p class="mb-4 text-sm text-[var(--color-text-muted)]">
+				<strong>Player Switching:</strong> Click on a player to select them, then click another player
+				to swap batting order positions.
+			</p>
 			<div class="space-y-2">
 				{#each displayOrder as player (player)}
 					{@const originalIndex = battingOrder.indexOf(player)}
 					{@const isAttending = isPlayerAttending(player)}
 					<div
-						class="flex items-center justify-between rounded border bg-[var(--color-bg-secondary)] p-3 {!isAttending
+						class="flex items-center justify-between rounded border p-3 transition-all duration-200 {selectedPlayer ===
+						player
+							? 'bg-opacity-10 border-[var(--color-warning)] bg-[var(--color-warning)] ring-2 ring-[var(--color-warning)] ring-offset-1'
+							: 'cursor-pointer border-[var(--color-border)] bg-[var(--color-bg-secondary)] hover:border-[var(--color-primary)]'} {!isAttending
 							? 'opacity-60'
 							: ''}"
+						role="button"
+						tabindex="0"
+						onclick={() => handlePlayerClick(player)}
+						onkeydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								handlePlayerClick(player);
+							}
+						}}
 					>
 						<div class="flex items-center gap-3">
 							<span class="font-medium">{originalIndex + 1}. {player}</span>
@@ -158,7 +231,10 @@
 							class="rounded px-3 py-1 text-sm font-medium transition-colors {isAttending
 								? 'bg-[var(--color-success)] text-white hover:bg-[var(--color-success-dark)]'
 								: 'bg-[var(--color-error)] text-white hover:bg-[var(--color-error-dark)]'}"
-							onclick={() => togglePlayerAttendance(player)}
+							onclick={(e) => {
+								e.stopPropagation();
+								togglePlayerAttendance(player);
+							}}
 						>
 							{isAttending ? 'Attending' : 'Not Attending'}
 						</button>

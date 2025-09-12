@@ -978,6 +978,31 @@ export function swapPlayersInInning(
 	}
 }
 
+export function swapPlayersInBattingOrder(player1: string, player2: string): void {
+	// Validate inputs
+	if (!player1 || !player2 || player1 === player2) {
+		console.warn('Invalid players for batting order swap');
+		return;
+	}
+
+	// Find the indices of both players in the batting order
+	const player1Index = battingOrder.indexOf(player1);
+	const player2Index = battingOrder.indexOf(player2);
+
+	// Check if both players exist in the batting order
+	if (player1Index === -1 || player2Index === -1) {
+		console.warn('One or both players not found in batting order');
+		return;
+	}
+
+	// Perform the swap
+	battingOrder[player1Index] = player2;
+	battingOrder[player2Index] = player1;
+
+	// Update URL with new state
+	updateUrlFromState();
+}
+
 // Analytics and Statistics Functions
 export interface PlayerFrequencyData {
 	player: string;
