@@ -8,7 +8,8 @@
 		togglePlayerCapability,
 		allPlayersHaveCapabilities,
 		getAttendingPlayers,
-		getNonAttendingPlayers
+		getNonAttendingPlayers,
+		roster
 	} from '$lib/baseball-lineup-logic.svelte';
 	import AnalyticsPanel from './AnalyticsPanel.svelte';
 
@@ -25,6 +26,7 @@
 	// Get attending and non-attending players
 	const attendingPlayers = $derived(getAttendingPlayers());
 	const nonAttendingPlayers = $derived(getNonAttendingPlayers());
+	const allPlayers = $derived(roster);
 
 	// Local functions
 	function handleGenerateLineups() {
@@ -90,9 +92,9 @@
 		{#if !capabilitiesCollapsed}
 			<div class="capabilities-content transition-all duration-300 ease-in-out">
 				<p class="mb-4 text-sm text-[var(--color-text-muted)]">
-					Click to toggle which positions each player can play. Only attending players are shown
-					below. Once all attending players have at least one position, you can generate 6 random
-					defensive lineups.
+					Click to toggle which positions each player can play. All players are shown below, with
+					non-attending players marked accordingly. Once all attending players have at least one
+					position, you can generate 6 random defensive lineups.
 				</p>
 				<div class="overflow-x-auto">
 					<table class="w-full border-collapse">
@@ -109,9 +111,11 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each attendingPlayers as player (player)}
+							{#each allPlayers as player (player)}
 								<tr class="border-b border-[var(--color-border-light)]">
-									<td class="p-2 font-medium text-[var(--color-text)]">{player}</td>
+									<td class="p-2 font-medium text-[var(--color-text)]">
+										{player}
+									</td>
 									{#each POSITIONS as position (position)}
 										<td class="p-2 text-center">
 											<button
