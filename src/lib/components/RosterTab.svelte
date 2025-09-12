@@ -9,6 +9,9 @@
 	let editingPlayer = $state<string | null>(null);
 	let editingName = $state('');
 
+	// Computed: sorted roster for display
+	let sortedRoster = $derived([...roster].sort((a, b) => a.localeCompare(b)));
+
 	// Local functions for UI state management
 	function handleAddPlayer() {
 		if (addPlayer(newPlayerName)) {
@@ -51,7 +54,7 @@
 			</p>
 		{:else}
 			<div class="space-y-2">
-				{#each roster as player (player)}
+				{#each sortedRoster as player (player)}
 					<div
 						class="flex items-center justify-between rounded border bg-[var(--color-bg-secondary)] p-3"
 					>
