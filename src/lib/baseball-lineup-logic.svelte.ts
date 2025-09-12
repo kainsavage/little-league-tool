@@ -45,6 +45,45 @@ export const roster = $state<string[]>([]);
 export const battingOrder = $state<string[]>([]);
 export const generatedLineups = $state<Record<string, string[]>>({});
 export const playerCapabilities = $state<Record<string, string[]>>({});
+export const playerAttendance = $state<Record<string, boolean>>({});
+export const gameMetadata = $state<{
+	gameDate: string;
+	gameTime: string;
+	homeTeam: string;
+	awayTeam: string;
+	isHomeTeam: boolean;
+	field: string;
+}>({
+	gameDate: '',
+	gameTime: '',
+	homeTeam: '',
+	awayTeam: '',
+	isHomeTeam: true,
+	field: ''
+});
+
+// Initial state tracking for reset functionality
+const initialRoster = $state<string[]>([]);
+const initialBattingOrder = $state<string[]>([]);
+const initialGeneratedLineups = $state<Record<string, string[]>>({});
+const initialPlayerCapabilities = $state<Record<string, string[]>>({});
+const initialPlayerAttendance = $state<Record<string, boolean>>({});
+const initialGameMetadata = $state<{
+	gameDate: string;
+	gameTime: string;
+	homeTeam: string;
+	awayTeam: string;
+	isHomeTeam: boolean;
+	field: string;
+}>({
+	gameDate: '',
+	gameTime: '',
+	homeTeam: '',
+	awayTeam: '',
+	isHomeTeam: true,
+	field: ''
+});
+let hasInitialState = $state(false);
 
 // Utility functions
 export function getInfieldPositions(): string[] {
@@ -55,10 +94,172 @@ export function isInfieldPosition(position: string): boolean {
 	return getInfieldPositions().includes(position);
 }
 
+// Initial state management functions
+export function saveInitialState(): void {
+	initialRoster.splice(0, initialRoster.length, ...roster);
+	initialBattingOrder.splice(0, initialBattingOrder.length, ...battingOrder);
+	Object.assign(initialGeneratedLineups, generatedLineups);
+	Object.assign(initialPlayerCapabilities, playerCapabilities);
+	Object.assign(initialPlayerAttendance, playerAttendance);
+	Object.assign(initialGameMetadata, gameMetadata);
+	hasInitialState = true;
+}
+
+export function hasStateChanged(): boolean {
+	if (!hasInitialState) return false;
+
+	// Check roster changes
+	if (
+		roster.length !== initialRoster.length ||
+		!roster.every((player, index) => player === initialRoster[index])
+	) {
+		return true;
+	}
+
+	// Check batting order changes
+	if (
+		battingOrder.length !== initialBattingOrder.length ||
+		!battingOrder.every((player, index) => player === initialBattingOrder[index])
+	) {
+		return true;
+	}
+
+	// Check generated lineups changes
+	const currentLineupKeys = Object.keys(generatedLineups).sort();
+	const initialLineupKeys = Object.keys(initialGeneratedLineups).sort();
+	if (
+		currentLineupKeys.length !== initialLineupKeys.length ||
+		!currentLineupKeys.every((key, index) => key === initialLineupKeys[index])
+	) {
+		return true;
+	}
+
+	for (const key of currentLineupKeys) {
+		const current = generatedLineups[key];
+		const initial = initialGeneratedLineups[key];
+		if (
+			current.length !== initial.length ||
+			!current.every((player, index) => player === initial[index])
+		) {
+			return true;
+		}
+	}
+
+	// Check player capabilities changes
+	const currentCapabilityKeys = Object.keys(playerCapabilities).sort();
+	const initialCapabilityKeys = Object.keys(initialPlayerCapabilities).sort();
+	if (
+		currentCapabilityKeys.length !== initialCapabilityKeys.length ||
+		!currentCapabilityKeys.every((key, index) => key === initialCapabilityKeys[index])
+	) {
+		return true;
+	}
+
+	for (const key of currentCapabilityKeys) {
+		const current = playerCapabilities[key];
+		const initial = initialPlayerCapabilities[key];
+		if (
+			current.length !== initial.length ||
+			!current.every((capability, index) => capability === initial[index])
+		) {
+			return true;
+		}
+	}
+
+	// Check player attendance changes
+	const currentAttendanceKeys = Object.keys(playerAttendance).sort();
+	const initialAttendanceKeys = Object.keys(initialPlayerAttendance).sort();
+	if (
+		currentAttendanceKeys.length !== initialAttendanceKeys.length ||
+		!currentAttendanceKeys.every((key, index) => key === initialAttendanceKeys[index])
+	) {
+		return true;
+	}
+
+	for (const key of currentAttendanceKeys) {
+		if (playerAttendance[key] !== initialPlayerAttendance[key]) {
+			return true;
+		}
+	}
+
+	// Check game metadata changes
+	if (
+		gameMetadata.gameDate !== initialGameMetadata.gameDate ||
+		gameMetadata.gameTime !== initialGameMetadata.gameTime ||
+		gameMetadata.homeTeam !== initialGameMetadata.homeTeam ||
+		gameMetadata.awayTeam !== initialGameMetadata.awayTeam ||
+		gameMetadata.isHomeTeam !== initialGameMetadata.isHomeTeam ||
+		gameMetadata.field !== initialGameMetadata.field
+	) {
+		return true;
+	}
+
+	return false;
+}
+
+export function resetToInitialState(): void {
+	if (!hasInitialState) return;
+
+	// Reset all state to initial values
+	roster.splice(0, roster.length, ...initialRoster);
+	battingOrder.splice(0, battingOrder.length, ...initialBattingOrder);
+
+	// Clear and reset generated lineups
+	Object.keys(generatedLineups).forEach((key) => delete generatedLineups[key]);
+	Object.assign(generatedLineups, initialGeneratedLineups);
+
+	// Clear and reset player capabilities
+	Object.keys(playerCapabilities).forEach((key) => delete playerCapabilities[key]);
+	Object.assign(playerCapabilities, initialPlayerCapabilities);
+
+	// Clear and reset player attendance
+	Object.keys(playerAttendance).forEach((key) => delete playerAttendance[key]);
+	Object.assign(playerAttendance, initialPlayerAttendance);
+
+	Object.assign(gameMetadata, initialGameMetadata);
+
+	// Update URL with reset state
+	updateUrlFromState();
+}
+
+// Game Metadata Management Functions
+export function updateGameMetadata(metadata: {
+	gameDate?: string;
+	gameTime?: string;
+	homeTeam?: string;
+	awayTeam?: string;
+	isHomeTeam?: boolean;
+	field?: string;
+}): void {
+	if (metadata.gameDate !== undefined) {
+		gameMetadata.gameDate = metadata.gameDate;
+	}
+	if (metadata.gameTime !== undefined) {
+		gameMetadata.gameTime = metadata.gameTime;
+	}
+	if (metadata.homeTeam !== undefined) {
+		gameMetadata.homeTeam = metadata.homeTeam;
+	}
+	if (metadata.awayTeam !== undefined) {
+		gameMetadata.awayTeam = metadata.awayTeam;
+	}
+	if (metadata.isHomeTeam !== undefined) {
+		gameMetadata.isHomeTeam = metadata.isHomeTeam;
+	}
+	if (metadata.field !== undefined) {
+		gameMetadata.field = metadata.field;
+	}
+
+	// Update URL with new state
+	updateUrlFromState();
+}
+
 // Roster Management Functions
 export function addPlayer(playerName: string): boolean {
 	if (playerName.trim() && !roster.includes(playerName.trim())) {
 		roster.push(playerName.trim());
+		// Initialize attendance as true (attending) by default
+		playerAttendance[playerName.trim()] = true;
 		// Update URL with new state
 		updateUrlFromState();
 		return true;
@@ -70,9 +271,10 @@ export function removePlayer(player: string): void {
 	const index = roster.indexOf(player);
 	if (index > -1) {
 		roster.splice(index, 1);
-		// Also remove from batting order and capabilities
+		// Also remove from batting order, capabilities, and attendance
 		removeFromBattingOrder(player);
 		delete playerCapabilities[player];
+		delete playerAttendance[player];
 		// Update URL with new state
 		updateUrlFromState();
 	}
@@ -96,6 +298,12 @@ export function updatePlayerName(oldName: string, newName: string): boolean {
 				delete playerCapabilities[oldName];
 			}
 
+			// Update attendance
+			if (playerAttendance[oldName] !== undefined) {
+				playerAttendance[newName.trim()] = playerAttendance[oldName];
+				delete playerAttendance[oldName];
+			}
+
 			// Update URL with new state
 			updateUrlFromState();
 			return true;
@@ -116,9 +324,53 @@ export function randomizeBattingOrder(): void {
 	// Create a shuffled copy of the roster
 	const shuffled = [...roster].sort(() => Math.random() - 0.5);
 	battingOrder.splice(0, battingOrder.length, ...shuffled);
+
+	// Initialize attendance state for all players if not already set
+	roster.forEach((player) => {
+		if (playerAttendance[player] === undefined) {
+			playerAttendance[player] = true; // Default to attending
+		}
+	});
+
 	// Update URL with new state
 	updateUrlFromState();
 	console.log('Batting order randomized:', $state.snapshot(battingOrder));
+}
+
+// Attendance Management Functions
+export function togglePlayerAttendance(player: string): void {
+	// Ensure attendance state is initialized (should already be done by randomizeBattingOrder)
+	if (playerAttendance[player] === undefined) {
+		playerAttendance[player] = true; // Default to attending
+	}
+
+	// Toggle the attendance state
+	playerAttendance[player] = !playerAttendance[player];
+
+	// Clear generated lineups when attendance changes to avoid conflicts
+	clearGeneratedLineups();
+
+	// Update URL with new state
+	updateUrlFromState();
+}
+
+export function isPlayerAttending(player: string): boolean {
+	return playerAttendance[player] !== false; // Default to attending if not set
+}
+
+export function getAttendingPlayers(): string[] {
+	return roster.filter((player) => isPlayerAttending(player));
+}
+
+export function getNonAttendingPlayers(): string[] {
+	return roster.filter((player) => !isPlayerAttending(player));
+}
+
+// Get sorted batting order for display (attending players first, then non-attending)
+export function getSortedBattingOrderForDisplay(): string[] {
+	const attending = battingOrder.filter((player) => isPlayerAttending(player));
+	const nonAttending = battingOrder.filter((player) => !isPlayerAttending(player));
+	return [...attending, ...nonAttending];
 }
 
 // Player Capabilities Management
@@ -147,7 +399,7 @@ export function canPlayerPlayPosition(player: string, position: string): boolean
 }
 
 export function allPlayersHaveCapabilities(): boolean {
-	return roster.every(
+	return getAttendingPlayers().every(
 		(player) => playerCapabilities[player] && playerCapabilities[player].length > 0
 	);
 }
@@ -181,13 +433,58 @@ export function canPlayerPlayPositionInInning(
 	return true;
 }
 
+/**
+ * Checks if a player can be assigned to a position in a specific inning, considering consecutive assignment rules
+ */
+export function canPlayerPlayPositionInSpecificInning(
+	player: string,
+	position: string,
+	inning: number,
+	playerStats: Record<string, PlayerStats>,
+	lineups: Record<string, string[]>
+): boolean {
+	// First check basic rules
+	if (!canPlayerPlayPositionInInning(player, position, playerStats)) {
+		return false;
+	}
+
+	// For pitcher and catcher, check consecutive assignment rule
+	if (position === 'Pitcher' || position === 'Catcher') {
+		const positionLineup = lineups[position] || [];
+		const currentCount = playerStats[player].positionCounts[position];
+
+		// If this would be the player's first time in this position, it's always allowed
+		if (currentCount === 0) {
+			return true;
+		}
+
+		// If this would be the player's second+ time in this position, check consecutive rule
+		if (currentCount > 0) {
+			// Find the last inning where this player played this position
+			let lastInningPlayed = -1;
+			for (let i = 0; i < positionLineup.length; i++) {
+				if (positionLineup[i] === player) {
+					lastInningPlayed = i;
+				}
+			}
+
+			// If there's a gap between last inning and current inning, it's not consecutive
+			if (lastInningPlayed !== -1 && inning !== lastInningPlayed + 1) {
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
 export function calculatePlayerStats(
 	lineups: Record<string, string[]>
 ): Record<string, PlayerStats> {
 	const stats: Record<string, PlayerStats> = {};
 
-	// Initialize stats for all players
-	roster.forEach((player) => {
+	// Initialize stats for attending players only
+	getAttendingPlayers().forEach((player) => {
 		stats[player] = {
 			positionCounts: {},
 			infieldInnings: 0,
@@ -205,7 +502,7 @@ export function calculatePlayerStats(
 		// Count field positions
 		POSITIONS.forEach((position) => {
 			const player = lineups[position]?.[inning];
-			if (player) {
+			if (player && isPlayerAttending(player)) {
 				stats[player].positionCounts[position]++;
 				playersOnField.push(player);
 				if (isInfieldPosition(position)) {
@@ -214,8 +511,8 @@ export function calculatePlayerStats(
 			}
 		});
 
-		// Count bench innings
-		roster.forEach((player) => {
+		// Count bench innings for attending players only
+		getAttendingPlayers().forEach((player) => {
 			if (!playersOnField.includes(player)) {
 				stats[player].benchInnings++;
 			}
@@ -230,7 +527,7 @@ export function validateLineup(lineups: Record<string, string[]>): LineupValidat
 	const stats = calculatePlayerStats(lineups);
 
 	// Rule 2: Each player must play a minimum of two (2) innings in the infield
-	roster.forEach((player) => {
+	getAttendingPlayers().forEach((player) => {
 		if (stats[player].infieldInnings < 2) {
 			errors.push(
 				`${player} only played ${stats[player].infieldInnings} infield innings (minimum 2 required)`
@@ -239,7 +536,7 @@ export function validateLineup(lineups: Record<string, string[]>): LineupValidat
 	});
 
 	// Rule 3: Players must not exceed 1 inning more on the bench than their teammates
-	const benchInnings = roster.map((player) => stats[player].benchInnings);
+	const benchInnings = getAttendingPlayers().map((player) => stats[player].benchInnings);
 	const maxBench = Math.max(...benchInnings);
 	const minBench = Math.min(...benchInnings);
 	if (maxBench - minBench > 1) {
@@ -248,12 +545,74 @@ export function validateLineup(lineups: Record<string, string[]>): LineupValidat
 		);
 	}
 
+	// New Rule: Pitcher consecutive innings validation
+	const pitcherErrors = validateConsecutivePositionAssignments(lineups, 'Pitcher');
+	errors.push(...pitcherErrors);
+
+	// New Rule: Catcher consecutive innings validation
+	const catcherErrors = validateConsecutivePositionAssignments(lineups, 'Catcher');
+	errors.push(...catcherErrors);
+
 	return { isValid: errors.length === 0, errors };
+}
+
+/**
+ * Validates that if a player plays a position more than once, they must play it in consecutive innings
+ */
+export function validateConsecutivePositionAssignments(
+	lineups: Record<string, string[]>,
+	position: string
+): string[] {
+	const errors: string[] = [];
+
+	// Get all players who played this position
+	const positionLineup = lineups[position] || [];
+	const playersWhoPlayedPosition: string[] = [];
+
+	positionLineup.forEach((player) => {
+		if (player && player.trim() !== '' && !playersWhoPlayedPosition.includes(player)) {
+			playersWhoPlayedPosition.push(player);
+		}
+	});
+
+	// Check each player who played the position
+	playersWhoPlayedPosition.forEach((player) => {
+		const inningsPlayed: number[] = [];
+
+		// Find all innings where this player played this position
+		positionLineup.forEach((lineupPlayer, inning) => {
+			if (lineupPlayer === player) {
+				inningsPlayed.push(inning);
+			}
+		});
+
+		// If player played position more than once, check if innings are consecutive
+		if (inningsPlayed.length > 1) {
+			const sortedInnings = inningsPlayed.sort((a, b) => a - b);
+			let isConsecutive = true;
+
+			for (let i = 1; i < sortedInnings.length; i++) {
+				if (sortedInnings[i] !== sortedInnings[i - 1] + 1) {
+					isConsecutive = false;
+					break;
+				}
+			}
+
+			if (!isConsecutive) {
+				errors.push(
+					`${player} played ${position} in non-consecutive innings: ${sortedInnings.map((i) => i + 1).join(', ')}`
+				);
+			}
+		}
+	});
+
+	return errors;
 }
 
 // Defensive Lineup Generation
 export function generateFairSittingAssignment(): SittingAssignment | null {
-	const sittingPerInning = roster.length - 9;
+	const attendingPlayers = getAttendingPlayers();
+	const sittingPerInning = Math.max(0, attendingPlayers.length - 9);
 	const sittingAssignment: SittingAssignment = {};
 
 	// Initialize sitting assignment for each inning
@@ -263,19 +622,20 @@ export function generateFairSittingAssignment(): SittingAssignment | null {
 
 	// Track how many times each player sits
 	const sittingCounts: Record<string, number> = {};
-	roster.forEach((player) => {
+	attendingPlayers.forEach((player) => {
 		sittingCounts[player] = 0;
 	});
 
 	// Calculate target sitting time
 	const totalSittingSlots = sittingPerInning * INNING_COUNT;
-	const targetSittingPerPlayer = Math.floor(totalSittingSlots / roster.length);
+	const targetSittingPerPlayer =
+		attendingPlayers.length > 0 ? Math.floor(totalSittingSlots / attendingPlayers.length) : 0;
 	const maxSittingPerPlayer = targetSittingPerPlayer + 1; // Allow 1 extra sitting
 
 	// Distribute sitting time fairly
 	for (let inning = 0; inning < INNING_COUNT; inning++) {
 		// Prioritize players who need to sit more to reach target
-		const playersByPriority = [...roster].sort((a, b) => {
+		const playersByPriority = [...attendingPlayers].sort((a, b) => {
 			const aCount = sittingCounts[a];
 			const bCount = sittingCounts[b];
 
@@ -351,8 +711,8 @@ export function generateLineupsWithSittingAssignment(
 		lineups[position] = [];
 	});
 
-	// Initialize player stats
-	roster.forEach((player) => {
+	// Initialize player stats for attending players only
+	getAttendingPlayers().forEach((player) => {
 		playerStats[player] = {
 			positionCounts: {},
 			infieldInnings: 0,
@@ -367,13 +727,15 @@ export function generateLineupsWithSittingAssignment(
 	for (let inning = 0; inning < INNING_COUNT; inning++) {
 		// Get players who are NOT sitting this inning
 		const sittingThisInning = sittingAssignment[inning];
-		const availablePlayers = roster.filter((player) => !sittingThisInning.includes(player));
+		const availablePlayers = getAttendingPlayers().filter(
+			(player) => !sittingThisInning.includes(player)
+		);
 
 		// Assign each position
 		for (const position of POSITIONS) {
 			// Find players who can play this position and respect league rules
 			const eligiblePlayers = availablePlayers.filter((player) =>
-				canPlayerPlayPositionInInning(player, position, playerStats)
+				canPlayerPlayPositionInSpecificInning(player, position, inning, playerStats, lineups)
 			);
 
 			if (eligiblePlayers.length > 0) {
@@ -417,7 +779,7 @@ export function generateLineupsWithSittingAssignment(
 		});
 
 		// Fill any remaining sitting slots with empty strings
-		const sittingSlots = roster.length - 9;
+		const sittingSlots = Math.max(0, getAttendingPlayers().length - 9);
 		for (let i = sittingThisInning.length; i < sittingSlots; i++) {
 			const sittingKey = `Sitting ${i + 1}`;
 			if (!lineups[sittingKey]) {
@@ -432,26 +794,46 @@ export function generateLineupsWithSittingAssignment(
 
 export function generateSimpleLineups(): void {
 	const lineups: Record<string, string[]> = {};
+	const playerStats: Record<string, PlayerStats> = {};
 
 	// Initialize each position with empty array for 6 innings
 	POSITIONS.forEach((position) => {
 		lineups[position] = [];
 	});
 
-	// Generate 6 lineups (original simple logic)
+	// Initialize player stats for attending players only
+	getAttendingPlayers().forEach((player) => {
+		playerStats[player] = {
+			positionCounts: {},
+			infieldInnings: 0,
+			benchInnings: 0
+		};
+		POSITIONS.forEach((position) => {
+			playerStats[player].positionCounts[position] = 0;
+		});
+	});
+
+	// Generate 6 lineups (updated to respect consecutive rules)
 	for (let inning = 0; inning < INNING_COUNT; inning++) {
-		const availablePlayers = [...roster];
+		const availablePlayers = [...getAttendingPlayers()];
 
 		// Assign each position
 		POSITIONS.forEach((position) => {
 			const eligiblePlayers = availablePlayers.filter((player) =>
-				canPlayerPlayPosition(player, position)
+				canPlayerPlayPositionInSpecificInning(player, position, inning, playerStats, lineups)
 			);
 
 			if (eligiblePlayers.length > 0) {
 				const randomIndex = Math.floor(Math.random() * eligiblePlayers.length);
 				const selectedPlayer = eligiblePlayers[randomIndex];
 				lineups[position].push(selectedPlayer);
+
+				// Update stats
+				playerStats[selectedPlayer].positionCounts[position]++;
+				if (isInfieldPosition(position)) {
+					playerStats[selectedPlayer].infieldInnings++;
+				}
+
 				const playerIndex = availablePlayers.indexOf(selectedPlayer);
 				availablePlayers.splice(playerIndex, 1);
 			} else {
@@ -466,10 +848,13 @@ export function generateSimpleLineups(): void {
 				lineups[sittingKey] = [];
 			}
 			lineups[sittingKey].push(sittingPlayer);
+
+			// Update bench innings
+			playerStats[sittingPlayer].benchInnings++;
 		});
 
 		// Fill any remaining sitting slots with empty strings
-		const sittingSlots = roster.length - 9;
+		const sittingSlots = Math.max(0, getAttendingPlayers().length - 9);
 		for (let i = availablePlayers.length; i < sittingSlots; i++) {
 			const sittingKey = `Sitting ${i + 1}`;
 			if (!lineups[sittingKey]) {
@@ -541,13 +926,162 @@ export function clearGeneratedLineups(): void {
 	updateUrlFromState();
 }
 
+// Analytics and Statistics Functions
+export interface PlayerFrequencyData {
+	player: string;
+	totalInnings: number;
+	fieldInnings: number;
+	infieldInnings: number;
+	outfieldInnings: number;
+	benchInnings: number;
+	positionBreakdown: Record<string, number>;
+}
+
+export interface PositionFrequencyData {
+	position: string;
+	totalAssignments: number;
+	playerBreakdown: Record<string, number>;
+}
+
+export interface AnalyticsData {
+	playerFrequencies: PlayerFrequencyData[];
+	positionFrequencies: PositionFrequencyData[];
+	summary: {
+		totalPlayers: number;
+		totalInnings: number;
+		averageFieldTime: number;
+		averageBenchTime: number;
+		fairnessScore: number; // 0-100, higher is more fair
+	};
+}
+
+export function calculateAnalyticsData(lineups: Record<string, string[]>): AnalyticsData {
+	const attendingPlayers = getAttendingPlayers();
+	const nonAttendingPlayers = getNonAttendingPlayers();
+	const allPlayers = [...attendingPlayers, ...nonAttendingPlayers];
+	const playerFrequencies: PlayerFrequencyData[] = [];
+	const positionFrequencies: PositionFrequencyData[] = [];
+
+	// Initialize player frequency data for all players
+	allPlayers.forEach((player) => {
+		const isAttending = attendingPlayers.includes(player);
+		playerFrequencies.push({
+			player,
+			totalInnings: isAttending ? 0 : 0, // Non-attending players have 0 innings
+			fieldInnings: isAttending ? 0 : 0,
+			infieldInnings: isAttending ? 0 : 0,
+			outfieldInnings: isAttending ? 0 : 0,
+			benchInnings: isAttending ? 0 : 0,
+			positionBreakdown: {}
+		});
+	});
+
+	// Initialize position frequency data
+	POSITIONS.forEach((position) => {
+		positionFrequencies.push({
+			position,
+			totalAssignments: 0,
+			playerBreakdown: {}
+		});
+	});
+
+	// Calculate frequencies for each inning
+	for (let inning = 0; inning < INNING_COUNT; inning++) {
+		const playersOnField: string[] = [];
+
+		// Count field positions
+		POSITIONS.forEach((position) => {
+			const player = lineups[position]?.[inning];
+			if (player && attendingPlayers.includes(player)) {
+				// Update player frequency
+				const playerData = playerFrequencies.find((p) => p.player === player);
+				if (playerData) {
+					playerData.totalInnings++;
+					playerData.fieldInnings++;
+					playerData.positionBreakdown[position] =
+						(playerData.positionBreakdown[position] || 0) + 1;
+
+					// Track infield vs outfield innings
+					if (isInfieldPosition(position)) {
+						playerData.infieldInnings++;
+					} else {
+						playerData.outfieldInnings++;
+					}
+				}
+
+				// Update position frequency
+				const positionData = positionFrequencies.find((p) => p.position === position);
+				if (positionData) {
+					positionData.totalAssignments++;
+					positionData.playerBreakdown[player] = (positionData.playerBreakdown[player] || 0) + 1;
+				}
+
+				playersOnField.push(player);
+			}
+		});
+
+		// Count bench innings
+		attendingPlayers.forEach((player) => {
+			if (!playersOnField.includes(player)) {
+				const playerData = playerFrequencies.find((p) => p.player === player);
+				if (playerData) {
+					playerData.totalInnings++;
+					playerData.benchInnings++;
+				}
+			}
+		});
+	}
+
+	// Calculate summary statistics (only for attending players)
+	const totalPlayers = attendingPlayers.length;
+	const totalInnings = INNING_COUNT;
+	const attendingPlayerFrequencies = playerFrequencies.filter((p) =>
+		attendingPlayers.includes(p.player)
+	);
+	const fieldTimes = attendingPlayerFrequencies.map((p) => p.fieldInnings);
+	const benchTimes = attendingPlayerFrequencies.map((p) => p.benchInnings);
+
+	const averageFieldTime = fieldTimes.reduce((sum, time) => sum + time, 0) / totalPlayers;
+	const averageBenchTime = benchTimes.reduce((sum, time) => sum + time, 0) / totalPlayers;
+
+	// Calculate fairness score (0-100)
+	// Lower variance in field/bench time = higher fairness score
+	const fieldTimeVariance = calculateVariance(fieldTimes);
+	const benchTimeVariance = calculateVariance(benchTimes);
+	const maxPossibleVariance = Math.pow(totalInnings, 2) / 4; // Theoretical maximum variance
+	const fieldFairness = Math.max(0, 100 - (fieldTimeVariance / maxPossibleVariance) * 100);
+	const benchFairness = Math.max(0, 100 - (benchTimeVariance / maxPossibleVariance) * 100);
+	const fairnessScore = (fieldFairness + benchFairness) / 2;
+
+	return {
+		playerFrequencies,
+		positionFrequencies,
+		summary: {
+			totalPlayers,
+			totalInnings,
+			averageFieldTime,
+			averageBenchTime,
+			fairnessScore: Math.round(fairnessScore)
+		}
+	};
+}
+
+function calculateVariance(values: number[]): number {
+	if (values.length === 0) return 0;
+	const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+	const squaredDiffs = values.map((val) => Math.pow(val - mean, 2));
+	return squaredDiffs.reduce((sum, diff) => sum + diff, 0) / values.length;
+}
+
 // URL-based state management
 export async function exportStateToUrl(): Promise<string> {
 	const state = {
 		roster: [...roster],
 		playerCapabilities: { ...playerCapabilities },
 		generatedLineups: { ...generatedLineups },
-		battingOrder: [...battingOrder]
+		battingOrder: [...battingOrder],
+		playerAttendance: { ...playerAttendance },
+		gameMetadata: { ...gameMetadata }
 	};
 
 	// Import the serialization functions dynamically to avoid circular dependencies
@@ -599,8 +1133,13 @@ export async function importStateFromUrl(
 		Object.assign(playerCapabilities, validatedState.playerCapabilities);
 		Object.assign(generatedLineups, validatedState.generatedLineups);
 		battingOrder.splice(0, battingOrder.length, ...(validatedState.battingOrder || []));
+		Object.assign(playerAttendance, validatedState.playerAttendance || {});
+		Object.assign(gameMetadata, validatedState.gameMetadata || {});
 
 		console.log('State loaded from URL - Batting order:', $state.snapshot(battingOrder));
+
+		// Save this as the initial state for reset functionality
+		saveInitialState();
 
 		// Note: No longer saving to localStorage - state is managed via URL
 
@@ -616,7 +1155,9 @@ export async function estimateUrlSize(): Promise<number> {
 		roster: [...roster],
 		playerCapabilities: { ...playerCapabilities },
 		generatedLineups: { ...generatedLineups },
-		battingOrder: [...battingOrder]
+		battingOrder: [...battingOrder],
+		playerAttendance: { ...playerAttendance },
+		gameMetadata: { ...gameMetadata }
 	};
 
 	const { estimateSize } = await import('./state-serialization');
@@ -697,8 +1238,18 @@ export async function initializeBaseballLineup(): Promise<void> {
 		}
 	}
 
+	// Initialize attendance for any players that don't have it set
+	roster.forEach((player) => {
+		if (playerAttendance[player] === undefined) {
+			playerAttendance[player] = true; // Default to attending
+		}
+	});
+
 	// Initialize batting order if we have players but no batting order
 	if (roster.length > 0 && battingOrder.length === 0) {
 		randomizeBattingOrder();
 	}
+
+	// Save initial state for reset functionality (even if empty)
+	saveInitialState();
 }

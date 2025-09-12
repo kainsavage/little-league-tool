@@ -1,6 +1,13 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import {
+		hasStateChanged,
+		resetToInitialState,
+		playerCapabilities
+	} from '$lib/baseball-lineup-logic.svelte';
+	import { encodeState } from '$lib/state-serialization';
+	import { emptyBaseballState } from '$lib/baseball-schema';
 
 	// Props
 	let {
@@ -49,6 +56,51 @@
 	function handleShareClick() {
 		showShareModal = true;
 	}
+
+	// Export button click handler
+	async function handleExportClick() {
+		try {
+			// Create export data using emptyBaseballState as base and only including the data we care about
+			const exportData = {
+				...emptyBaseballState,
+				roster: [...roster],
+				playerCapabilities: { ...playerCapabilities }
+			};
+
+			// Use the existing serialization system
+			const encodedState = await encodeState(exportData);
+			const exportUrl = `${window.location.origin}${window.location.pathname}${encodedState}`;
+
+			// Open in new tab
+			window.open(exportUrl, '_blank');
+		} catch (error) {
+			console.error('Failed to export data:', error);
+			// Fallback to simple JSON encoding if serialization fails
+			const exportData = {
+				roster: [...roster],
+				playerCapabilities: { ...playerCapabilities }
+			};
+			const encodedData = encodeURIComponent(JSON.stringify(exportData));
+			const exportUrl = `${window.location.origin}${window.location.pathname}#export=${encodedData}`;
+			window.open(exportUrl, '_blank');
+		}
+	}
+
+	// Reset functionality
+	let showResetConfirm = $state(false);
+
+	function handleResetClick() {
+		showResetConfirm = true;
+	}
+
+	function confirmReset() {
+		resetToInitialState();
+		showResetConfirm = false;
+	}
+
+	function cancelReset() {
+		showResetConfirm = false;
+	}
 </script>
 
 <!-- Tab Navigation -->
@@ -83,6 +135,24 @@
 	</div>
 	<div class="flex gap-2">
 		<button
+			class="flex items-center gap-2 rounded px-4 py-2 text-white transition-colors {hasStateChanged()
+				? 'bg-orange-600 hover:bg-orange-700'
+				: 'cursor-not-allowed bg-gray-400'}"
+			onclick={handleResetClick}
+			disabled={!hasStateChanged()}
+			title={hasStateChanged() ? 'Reset to original state' : 'No changes to reset'}
+		>
+			<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+				/>
+			</svg>
+			Reset
+		</button>
+		<button
 			class="flex items-center gap-2 rounded bg-[var(--color-primary)] px-4 py-2 text-white transition-colors hover:bg-[var(--color-primary-dark)]"
 			onclick={handleShareClick}
 			disabled={isGeneratingUrl || roster.length === 0}
@@ -111,6 +181,21 @@
 			{/if}
 		</button>
 		<button
+			class="flex items-center gap-2 rounded bg-[var(--color-primary)] px-4 py-2 text-white transition-colors hover:bg-[var(--color-primary-dark)]"
+			onclick={handleExportClick}
+			disabled={roster.length === 0}
+		>
+			<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+				/>
+			</svg>
+			Export
+		</button>
+		<button
 			class="flex items-center gap-2 rounded bg-[var(--color-secondary)] px-4 py-2 text-white transition-colors hover:bg-[var(--color-secondary-dark)]"
 			onclick={() => window.print()}
 		>
@@ -126,3 +211,32 @@
 		</button>
 	</div>
 </div>
+
+<!-- Reset Confirmation Modal -->
+{#if showResetConfirm}
+	<div class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
+		<div class="mx-4 max-w-md rounded-lg bg-white p-6 shadow-xl">
+			<div class="mb-4">
+				<h3 class="text-lg font-semibold text-gray-900">Reset to Original State</h3>
+				<p class="mt-2 text-sm text-gray-600">
+					Are you sure you want to reset all changes and return to the original state? This action
+					cannot be undone.
+				</p>
+			</div>
+			<div class="flex justify-end gap-3">
+				<button
+					class="rounded bg-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-400"
+					onclick={cancelReset}
+				>
+					Cancel
+				</button>
+				<button
+					class="rounded bg-orange-600 px-4 py-2 text-white transition-colors hover:bg-orange-700"
+					onclick={confirmReset}
+				>
+					Reset
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}

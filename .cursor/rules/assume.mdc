@@ -1,0 +1,8 @@
+---
+description: Assumptions to always make
+alwaysApply: true
+---
+
+Assume that the developer already has a running instance of the server, so `npm run dev` is NEVER something you should invoke.
+
+The server hot-reloads code, so changes appear without needing to start/restart the server.

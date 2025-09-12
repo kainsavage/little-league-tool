@@ -17,6 +17,7 @@
 	import ShareModal from '$lib/components/ShareModal.svelte';
 	import PrintBattingOrder from '$lib/components/PrintBattingOrder.svelte';
 	import PrintDefensiveLineup from '$lib/components/PrintDefensiveLineup.svelte';
+	import PrintAnalytics from '$lib/components/PrintAnalytics.svelte';
 
 	// Active tab
 	let activeTab = $state('roster');
@@ -135,6 +136,7 @@
 		<!-- Print-Only Content (Always Available) -->
 		<PrintBattingOrder {battingOrder} />
 		<PrintDefensiveLineup {generatedLineups} />
+		<PrintAnalytics {generatedLineups} />
 
 		<!-- Tab Content -->
 		{#if activeTab === 'roster'}
@@ -146,7 +148,7 @@
 		{/if}
 
 		{#if activeTab === 'defensive'}
-			<DefensiveTab {roster} {generatedLineups} />
+			<DefensiveTab {generatedLineups} />
 		{/if}
 	{/if}
 

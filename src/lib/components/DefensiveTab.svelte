@@ -6,20 +6,25 @@
 		validateLineup,
 		canPlayerPlayPosition,
 		togglePlayerCapability,
-		allPlayersHaveCapabilities
+		allPlayersHaveCapabilities,
+		getAttendingPlayers,
+		getNonAttendingPlayers
 	} from '$lib/baseball-lineup-logic.svelte';
+	import AnalyticsPanel from './AnalyticsPanel.svelte';
 
 	// Props
 	let {
-		roster = [],
 		generatedLineups = {}
 	}: {
-		roster?: string[];
 		generatedLineups?: Record<string, string[]>;
 	} = $props();
 
 	// Local state
 	let capabilitiesCollapsed = $state(false);
+
+	// Get attending and non-attending players
+	const attendingPlayers = $derived(getAttendingPlayers());
+	const nonAttendingPlayers = $derived(getNonAttendingPlayers());
 
 	// Local functions
 	function handleGenerateLineups() {
@@ -85,25 +90,26 @@
 		{#if !capabilitiesCollapsed}
 			<div class="capabilities-content transition-all duration-300 ease-in-out">
 				<p class="mb-4 text-sm text-[var(--color-text-muted)]">
-					Click to toggle which positions each player can play. Once all players have at least one
-					position, you can generate 6 random defensive lineups.
+					Click to toggle which positions each player can play. Only attending players are shown
+					below. Once all attending players have at least one position, you can generate 6 random
+					defensive lineups.
 				</p>
 				<div class="overflow-x-auto">
 					<table class="w-full border-collapse">
 						<thead>
 							<tr class="border-b border-[var(--color-border)]">
-								<th class="p-2 text-left text-sm font-medium text-[var(--color-text-light)]"
-									>Player</th
-								>
+								<th class="p-2 text-left text-sm font-medium text-[var(--color-text-light)]">
+									Player
+								</th>
 								{#each POSITIONS as position (position)}
-									<th class="p-2 text-center text-sm font-medium text-[var(--color-text-light)]"
-										>{position}</th
-									>
+									<th class="p-2 text-center text-sm font-medium text-[var(--color-text-light)]">
+										{position}
+									</th>
 								{/each}
 							</tr>
 						</thead>
 						<tbody>
-							{#each roster as player (player)}
+							{#each attendingPlayers as player (player)}
 								<tr class="border-b border-[var(--color-border-light)]">
 									<td class="p-2 font-medium text-[var(--color-text)]">{player}</td>
 									{#each POSITIONS as position (position)}
@@ -138,7 +144,7 @@
 			</h3>
 			<p class="mb-4 text-sm text-[var(--color-text-muted)]">
 				Each position shows the player assigned for each of the 6 innings. The "Sitting" rows show
-				which {roster.length - 9} players are not on the field for each inning.
+				which {Math.max(0, attendingPlayers.length - 9)} players are not on the field for each inning.
 				<br /><br />
 				<strong>League Rules Applied:</strong>
 				• Max 3 innings per position per player • Min 2 infield innings per player (Pitcher, Catcher,
@@ -211,7 +217,7 @@
 							</tr>
 						{/each}
 						<!-- Sitting Players Rows -->
-						{#each Array.from({ length: roster.length - 9 }, (_, index) => index) as index (index)}
+						{#each Array.from({ length: Math.max(0, attendingPlayers.length - 9) }, (_, index) => index) as index (index)}
 							{@const sittingKey = `Sitting ${index + 1}`}
 							<tr
 								class="border-b border-[var(--color-border-light)] bg-[var(--color-bg-secondary)]"
@@ -233,6 +239,25 @@
 					</tbody>
 				</table>
 			</div>
+
+			<!-- Non-Attending Players Section -->
+			{#if nonAttendingPlayers.length > 0}
+				<div class="mt-6 border-t border-[var(--color-border)] pt-4">
+					<div class="flex items-center gap-3">
+						<h4 class="text-lg font-medium text-[var(--color-text-light)]">Absent Players:</h4>
+						<div class="flex flex-wrap gap-2">
+							{#each nonAttendingPlayers as player (player)}
+								<span class="rounded bg-[var(--color-error)] px-3 py-1 text-sm text-white">
+									{player}
+								</span>
+							{/each}
+						</div>
+					</div>
+				</div>
+			{/if}
 		</div>
+
+		<!-- Analytics Panel -->
+		<AnalyticsPanel {generatedLineups} />
 	{/if}
 </div>

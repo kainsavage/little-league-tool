@@ -13,23 +13,54 @@ export const PlayerCapabilitiesSchema = z.record(z.string(), z.array(z.string())
 // Schema for generated lineups (position -> array of players for each inning)
 export const GeneratedLineupsSchema = z.record(z.string(), z.array(z.string()));
 
+// Schema for game metadata
+export const GameMetadataSchema = z.object({
+	gameDate: z.string().optional(),
+	gameTime: z.string().optional(),
+	homeTeam: z.string().optional(),
+	awayTeam: z.string().optional(),
+	isHomeTeam: z.boolean().optional(),
+	field: z.string().optional()
+});
+
 // Schema for the complete baseball lineup state
 export const BaseballLineupStateSchema = z.object({
 	roster: z.array(z.string()).min(1, 'Roster must have at least one player'),
 	playerCapabilities: PlayerCapabilitiesSchema,
 	generatedLineups: GeneratedLineupsSchema,
-	battingOrder: z.array(z.string()).optional()
+	battingOrder: z.array(z.string()).optional(),
+	playerAttendance: z.record(z.string(), z.boolean()).optional(),
+	gameMetadata: GameMetadataSchema.optional()
 });
 
 // Type inference from schema
 export type BaseballLineupState = z.infer<typeof BaseballLineupStateSchema>;
 export type PlayerCapabilities = z.infer<typeof PlayerCapabilitiesSchema>;
 export type GeneratedLineups = z.infer<typeof GeneratedLineupsSchema>;
+export type GameMetadata = z.infer<typeof GameMetadataSchema>;
+export type PlayerAttendance = z.infer<typeof BaseballLineupStateSchema>['playerAttendance'];
 
 // Validation helper function
 export function validateBaseballState(data: unknown): BaseballLineupState {
 	return BaseballLineupStateSchema.parse(data);
 }
+
+// Empty but valid state for use as a base object
+export const emptyBaseballState: BaseballLineupState = {
+	roster: [],
+	playerCapabilities: {},
+	generatedLineups: {},
+	battingOrder: [],
+	playerAttendance: {},
+	gameMetadata: {
+		gameDate: '',
+		gameTime: '',
+		homeTeam: '',
+		awayTeam: '',
+		isHomeTeam: true,
+		field: ''
+	}
+};
 
 // Example of a minimal valid state
 export const exampleBaseballState: BaseballLineupState = {
@@ -88,5 +119,27 @@ export const exampleBaseballState: BaseballLineupState = {
 		'Henry',
 		'Ivy',
 		'Jack'
-	]
+	],
+	playerAttendance: {
+		John: true,
+		Jane: true,
+		Bob: true,
+		Alice: true,
+		Charlie: true,
+		Diana: true,
+		Eve: true,
+		Frank: true,
+		Grace: true,
+		Henry: true,
+		Ivy: true,
+		Jack: true
+	},
+	gameMetadata: {
+		gameDate: '',
+		gameTime: '',
+		homeTeam: '',
+		awayTeam: '',
+		isHomeTeam: true,
+		field: ''
+	}
 };
