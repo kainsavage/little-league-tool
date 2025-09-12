@@ -926,6 +926,58 @@ export function clearGeneratedLineups(): void {
 	updateUrlFromState();
 }
 
+export function swapPlayersInInning(
+	position: string,
+	inning: number,
+	player1: string,
+	player2: string
+): void {
+	// Validate inputs
+	if (!generatedLineups[position] || inning < 0 || inning >= INNING_COUNT) {
+		console.warn('Invalid position or inning for swap');
+		return;
+	}
+
+	// Get the current lineup for this position
+	const lineup = generatedLineups[position];
+
+	// Find the indices of the players in this inning
+	const player1Index = lineup.findIndex((player, index) => player === player1 && index === inning);
+	const player2Index = lineup.findIndex((player, index) => player === player2 && index === inning);
+
+	// If both players are found in the same inning, swap them
+	if (player1Index !== -1 && player2Index !== -1 && player1Index === player2Index) {
+		// This means both players are in the same position/inning, which shouldn't happen
+		console.warn('Both players found in same position/inning - invalid swap');
+		return;
+	}
+
+	// Find players in the same inning across all positions
+	let player1Position = '';
+	let player2Position = '';
+
+	for (const [pos, posLineup] of Object.entries(generatedLineups)) {
+		if (posLineup[inning] === player1) {
+			player1Position = pos;
+		}
+		if (posLineup[inning] === player2) {
+			player2Position = pos;
+		}
+	}
+
+	// Perform the swap if both players are found in the same inning
+	if (player1Position && player2Position) {
+		// Swap the players
+		generatedLineups[player1Position][inning] = player2;
+		generatedLineups[player2Position][inning] = player1;
+
+		// Update URL with new state
+		updateUrlFromState();
+	} else {
+		console.warn('One or both players not found in the specified inning');
+	}
+}
+
 // Analytics and Statistics Functions
 export interface PlayerFrequencyData {
 	player: string;

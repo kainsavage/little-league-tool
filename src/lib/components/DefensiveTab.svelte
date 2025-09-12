@@ -9,7 +9,8 @@
 		allPlayersHaveCapabilities,
 		getAttendingPlayers,
 		getNonAttendingPlayers,
-		roster
+		roster,
+		swapPlayersInInning
 	} from '$lib/baseball-lineup-logic.svelte';
 	import AnalyticsPanel from './AnalyticsPanel.svelte';
 
@@ -22,6 +23,10 @@
 
 	// Local state
 	let capabilitiesCollapsed = $state(false);
+
+	// Player switching state
+	let selectedPlayer = $state<{ position: string; inning: number; player: string } | null>(null);
+	let isSwitchingMode = $state(false);
 
 	// Get attending and non-attending players
 	const attendingPlayers = $derived(getAttendingPlayers());
@@ -36,6 +41,50 @@
 
 	function toggleCapabilitiesPanel() {
 		capabilitiesCollapsed = !capabilitiesCollapsed;
+	}
+
+	// Player switching functions
+	function handlePlayerClick(position: string, inning: number, player: string) {
+		if (!player) {
+			// Clicking on empty slot - deselect current player if in switching mode
+			if (isSwitchingMode) {
+				selectedPlayer = null;
+				isSwitchingMode = false;
+			}
+			return;
+		}
+
+		if (!isSwitchingMode) {
+			// First click - enter switching mode
+			selectedPlayer = { position, inning, player };
+			isSwitchingMode = true;
+		} else {
+			// Second click - perform swap or cancel
+			if (selectedPlayer && selectedPlayer.inning === inning && selectedPlayer.player !== player) {
+				// Same inning, different player - perform swap
+				swapPlayersInInning(position, inning, selectedPlayer.player, player);
+				// Reset switching mode
+				selectedPlayer = null;
+				isSwitchingMode = false;
+			} else if (
+				selectedPlayer &&
+				selectedPlayer.position === position &&
+				selectedPlayer.inning === inning &&
+				selectedPlayer.player === player
+			) {
+				// Same player clicked - cancel switching mode
+				selectedPlayer = null;
+				isSwitchingMode = false;
+			} else {
+				// Different inning - cancel and start new selection
+				selectedPlayer = { position, inning, player };
+			}
+		}
+	}
+
+	function cancelSwitching() {
+		selectedPlayer = null;
+		isSwitchingMode = false;
 	}
 </script>
 
@@ -154,7 +203,33 @@
 				• Max 3 innings per position per player • Min 2 infield innings per player (Pitcher, Catcher,
 				1st-3rd Base, Shortstop) • Max 1 inning difference in bench time between players • 4+ innings
 				catching = no pitching eligibility • 2+ innings pitching = no catching eligibility
+				<br /><br />
+				<strong>Player Switching:</strong> Click on a player to select them, then click another player
+				in the same inning to swap positions.
 			</p>
+
+			<!-- Switching Mode Indicator -->
+			{#if isSwitchingMode && selectedPlayer}
+				<div
+					class="mb-4 rounded-lg border border-[var(--color-primary)] bg-[var(--color-accent-light)] p-3"
+				>
+					<div class="flex items-center justify-between">
+						<div class="flex items-center gap-2">
+							<div class="h-3 w-3 animate-pulse rounded-full bg-[var(--color-primary)]"></div>
+							<span class="text-sm font-medium text-[var(--color-primary)]">
+								Switching Mode: Click on another player in Inning {selectedPlayer.inning + 1} to swap
+								with {selectedPlayer.player}
+							</span>
+						</div>
+						<button
+							class="text-sm text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)]"
+							onclick={cancelSwitching}
+						>
+							Cancel
+						</button>
+					</div>
+				</div>
+			{/if}
 
 			<!-- League Rules Validation -->
 			<div class="validation-message">
@@ -210,11 +285,29 @@
 								{#each generatedLineups[position] || [] as player, inning (inning)}
 									<td class="p-2 text-center text-sm">
 										{#if player}
-											<span class="rounded bg-[var(--color-primary)] px-2 py-1 text-white">
+											<button
+												class="rounded px-2 py-1 text-white transition-all duration-200 hover:scale-105 {selectedPlayer &&
+												selectedPlayer.position === position &&
+												selectedPlayer.inning === inning &&
+												selectedPlayer.player === player
+													? 'bg-[var(--color-warning)] ring-2 ring-[var(--color-warning)] ring-offset-1'
+													: isSwitchingMode &&
+														  selectedPlayer &&
+														  selectedPlayer.inning === inning &&
+														  selectedPlayer.player !== player
+														? 'cursor-pointer bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)]'
+														: 'cursor-pointer bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)]'}"
+												onclick={() => handlePlayerClick(position, inning, player)}
+											>
 												{player}
-											</span>
+											</button>
 										{:else}
-											<span class="text-[var(--color-text-muted)] italic">-</span>
+											<button
+												class="text-[var(--color-text-muted)] italic transition-colors hover:text-[var(--color-text)]"
+												onclick={() => handlePlayerClick(position, inning, '')}
+											>
+												-
+											</button>
 										{/if}
 									</td>
 								{/each}
@@ -230,11 +323,29 @@
 								{#each generatedLineups[sittingKey] || [] as sittingPlayer, inning (inning)}
 									<td class="p-2 text-center text-sm">
 										{#if sittingPlayer}
-											<span class="rounded bg-[var(--color-dirt)] px-2 py-1 text-white">
+											<button
+												class="rounded px-2 py-1 text-white transition-all duration-200 hover:scale-105 {selectedPlayer &&
+												selectedPlayer.position === sittingKey &&
+												selectedPlayer.inning === inning &&
+												selectedPlayer.player === sittingPlayer
+													? 'bg-[var(--color-warning)] ring-2 ring-[var(--color-warning)] ring-offset-1'
+													: isSwitchingMode &&
+														  selectedPlayer &&
+														  selectedPlayer.inning === inning &&
+														  selectedPlayer.player !== sittingPlayer
+														? 'cursor-pointer bg-[var(--color-dirt)] hover:bg-[var(--color-dirt-dark)]'
+														: 'cursor-pointer bg-[var(--color-dirt)] hover:bg-[var(--color-dirt-dark)]'}"
+												onclick={() => handlePlayerClick(sittingKey, inning, sittingPlayer)}
+											>
 												{sittingPlayer}
-											</span>
+											</button>
 										{:else}
-											<span class="text-[var(--color-text-muted)] italic">-</span>
+											<button
+												class="text-[var(--color-text-muted)] italic transition-colors hover:text-[var(--color-text)]"
+												onclick={() => handlePlayerClick(sittingKey, inning, '')}
+											>
+												-
+											</button>
 										{/if}
 									</td>
 								{/each}
